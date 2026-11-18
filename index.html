@@ -1038,50 +1038,100 @@
   var $ = function(s, c){ return (c||document).querySelector(s); };
   var $$ = function(s, c){ return Array.prototype.slice.call((c||document).querySelectorAll(s)); };
 
-  /* ---------- Sound engine — synthesized with Web Audio, no audio files ---------- */
+  /* ---------- Sound engine — ONE shared Web Audio context, unlocked by the first tap ----------
+     Browsers keep an AudioContext "suspended" until a user gesture unlocks it, and can
+     re-suspend it (tab switch, phone lock). So: one shared context for the whole page,
+     an explicit unlock (resume + silent buffer) on the Let's Start click and on ANY tap,
+     a re-arm when the page becomes visible again, and every single sound goes through
+     withCtx(), which resumes first and only then schedules — a sound is never dropped. */
   var audioCtx = null, soundOn = true, noiseBuf = null;
   var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  function ac(){
-    if(!soundOn) return null;
+  function getCtx(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(e){ return null; }
+    }
+    return audioCtx;
+  }
+  function withCtx(cb){
+    if(!soundOn) return;
+    var ctx = getCtx(); if(!ctx) return;
+    if(ctx.state === "running"){ cb(ctx); return; }
+    var done = false;
+    var run = function(){ if(!done){ done = true; cb(ctx); } };
     try{
-      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if(audioCtx.state === "suspended") audioCtx.resume();
-      return audioCtx;
-    }catch(e){ return null; }
+      var p = ctx.resume();
+      if(p && typeof p.then === "function") p.then(run, run);
+    }catch(e){}
+    /* Fallback: if the resume promise stalls, schedule anyway — currentTime is frozen
+       while suspended, so the notes still land just after the context starts running. */
+    setTimeout(run, 80);
+  }
+  function unlockAudio(){
+    if(!soundOn) return;
+    var ctx = getCtx(); if(!ctx) return;
+    try{ if(ctx.state !== "running") ctx.resume(); }catch(e){}
+    try{
+      var buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+      var src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination); src.start(0);
+    }catch(e){}
   }
   function tone(freq, delay, dur, type, vol, slideTo){
-    var ctx = ac(); if(!ctx) return;
-    var t = ctx.currentTime + (delay || 0);
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type || "sine";
-    o.frequency.setValueAtTime(freq, t);
-    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(ctx.destination);
-    o.start(t); o.stop(t + dur + 0.05);
+    withCtx(function(ctx){
+      var t = ctx.currentTime + (delay || 0);
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type || "sine";
+      o.frequency.setValueAtTime(freq, t);
+      if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + dur + 0.05);
+    });
   }
   function noiseHit(delay, dur, freq, vol){
-    var ctx = ac(); if(!ctx) return;
-    if(!noiseBuf){
-      noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.5), ctx.sampleRate);
-      var d = noiseBuf.getChannelData(0);
-      for(var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    }
-    var t = ctx.currentTime + (delay || 0);
-    var src = ctx.createBufferSource(); src.buffer = noiseBuf;
-    var f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq || 1800; f.Q.value = 0.8;
-    var g = ctx.createGain();
-    g.gain.setValueAtTime(vol || 0.12, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    src.connect(f); f.connect(g); g.connect(ctx.destination);
-    src.start(t); src.stop(t + dur + 0.05);
+    withCtx(function(ctx){
+      if(!noiseBuf){
+        noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.5), ctx.sampleRate);
+        var d = noiseBuf.getChannelData(0);
+        for(var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      var t = ctx.currentTime + (delay || 0);
+      var src = ctx.createBufferSource(); src.buffer = noiseBuf;
+      var f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq || 1800; f.Q.value = 0.8;
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(vol || 0.12, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(ctx.destination);
+      src.start(t); src.stop(t + dur + 0.05);
+    });
   }
   function playClick(){ tone(680, 0, 0.07, "square", 0.07); tone(990, 0.015, 0.05, "sine", 0.05); }
   function playBeep(fr){ tone(fr || 880, 0, 0.09, "sine", 0.11); }
   function playWhoosh(){ noiseHit(0, 0.32, 900, 0.09); tone(280, 0, 0.3, "sine", 0.045, 760); }
-  function playStart(){ [523, 659, 784, 1047].forEach(function(fr, i){ tone(fr, i * 0.09, 0.22, "triangle", 0.13); }); noiseHit(0.05, 0.3, 1400, 0.04); }
+  /* TADAA! — the excited Let's Start fanfare: a fast rising major arpeggio
+     (C5–E5–G5–C6) that lands on a bright sustained chord, with high sparkle
+     pings and a shimmer of noise on top — pure game-show celebration. */
+  function playStart(){
+    [523.25, 659.25, 783.99, 1046.5].forEach(function(fr, i){
+      tone(fr, i * 0.07, 0.3, "triangle", 0.16);
+      tone(fr / 2, i * 0.07, 0.22, "sine", 0.05);
+    });
+    var land = 0.3;
+    [1046.5, 1318.5, 1568].forEach(function(fr){
+      tone(fr, land, 0.6, "triangle", 0.13);
+      tone(fr, land, 0.6, "sine", 0.06);
+    });
+    tone(523.25, land, 0.55, "triangle", 0.09);
+    tone(261.63, land, 0.5, "sine", 0.07);
+    [2093, 2637, 3136.5, 2637, 3520].forEach(function(fr, i){
+      tone(fr, land + 0.05 + i * 0.07, 0.2, "sine", 0.05);
+    });
+    noiseHit(land, 0.4, 5200, 0.05);
+    noiseHit(0.02, 0.25, 1500, 0.04);
+  }
   function playCommit(){ tone(784, 0, 0.16, "triangle", 0.13); tone(1047, 0.1, 0.2, "triangle", 0.13); tone(1319, 0.2, 0.3, "sine", 0.09); }
   function playCash(){ for(var i = 0; i < 6; i++) noiseHit(i * 0.13, 0.07, 2400, 0.12); tone(1568, 0.82, 0.12, "square", 0.06); tone(2093, 0.9, 0.22, "square", 0.06); }
   function playError(){ tone(170, 0, 0.28, "sawtooth", 0.13, 110); tone(150, 0.32, 0.34, "sawtooth", 0.13, 85); }
@@ -1092,6 +1142,11 @@
   var currentId = "welcome";
   var historyStack = [];
   var animating = false;
+
+  /* Finale video: pin its own volume to a fixed moderate level (half of the
+     system volume) so it never blasts at system 100% and stays consistent. */
+  var thanksVideoEl = $("#thanksVideo");
+  if(thanksVideoEl){ thanksVideoEl.volume = 0.5; }
 
   function swapTo(id, direction){
     var from = pages[currentId];
@@ -1105,6 +1160,7 @@
     if(thanksVideo){
       if(id === "thankyou"){
         try{ thanksVideo.currentTime = 0; }catch(e){}
+        thanksVideo.volume = 0.5;
         var pr = thanksVideo.play();
         if(pr && pr.catch) pr.catch(function(){});
       } else {
@@ -1150,7 +1206,21 @@
   $("#soundToggle").addEventListener("click", function(){
     soundOn = !soundOn;
     this.textContent = soundOn ? "🔊 Sound on" : "🔇 Sound off";
-    if(soundOn) playClick();
+    if(soundOn){ unlockAudio(); playClick(); }
+  });
+
+  /* ---------- Audio unlock / re-arm ----------
+     The Let's Start click is the big unlock: resume the shared context and play a
+     silent buffer inside that gesture, so the TADAA fanfare (fired by navigation
+     right after) and every later sound play on a running context. Any other tap
+     anywhere re-arms the same way if the browser suspended the context, and
+     coming back to the tab re-arms it too. */
+  $("#btnStart").addEventListener("click", unlockAudio);
+  document.addEventListener("pointerdown", unlockAudio, { passive: true });
+  document.addEventListener("click", unlockAudio);
+  document.addEventListener("keydown", unlockAudio);
+  document.addEventListener("visibilitychange", function(){
+    if(!document.hidden) unlockAudio();
   });
 
   /* ---------- Scenario toggle (What is TM) ---------- */
