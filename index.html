@@ -430,6 +430,60 @@
   .quiz-fb.show{display:block;animation:riseIn .3s ease both}
 
   .foot-note{color:var(--muted2);font-size:.88rem;margin-top:28px}
+
+  /* ---------- Welcome screen + sound toggle ---------- */
+  .welcome-wrap{min-height:calc(100dvh - clamp(36px,8vw,104px));display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative}
+  .welcome-wrap .lede{margin-left:auto;margin-right:auto}
+  .start-btn{
+    margin-top:36px;display:inline-flex;align-items:center;gap:16px;
+    background:linear-gradient(115deg,var(--gold2),var(--coral) 130%);
+    border:none;border-radius:999px;padding:24px 52px;min-height:44px;
+    font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(1.5rem,4vw,2rem);font-weight:800;color:#1c0f04;
+    animation:startPulse 1.9s ease-in-out infinite;
+    transition:transform .3s var(--spring);
+  }
+  .start-btn:hover{transform:scale(1.06) rotate(-1deg)}
+  .start-btn .sb-arrow{animation:nudgeX 1.4s ease-in-out infinite}
+  @keyframes startPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,179,64,.5),0 18px 40px -12px rgba(255,140,60,.6)}50%{box-shadow:0 0 0 20px rgba(255,179,64,0),0 18px 40px -12px rgba(255,140,60,.6)}}
+  .sound-toggle{
+    position:fixed;top:14px;right:14px;z-index:90;
+    background:rgba(20,14,36,.85);color:var(--ink);backdrop-filter:blur(6px);
+    border:1.5px solid var(--line);border-radius:999px;padding:9px 16px;
+    font-weight:700;font-size:.88rem;min-height:44px;
+    transition:transform .25s var(--spring), border-color .2s;
+  }
+  .sound-toggle:hover{border-color:var(--gold);transform:rotate(-2deg) scale(1.05)}
+
+  /* ---------- ATM machine life: card, keypad, vibration, alarm ---------- */
+  .card-slot{position:relative;height:44px;margin:28px 0 14px;background:#0a0616;border:1.5px solid var(--line);border-radius:12px}
+  .card-slot .cs-label{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-family:"JetBrains Mono",monospace;font-size:.68rem;font-weight:700;letter-spacing:.22em;color:var(--muted2)}
+  .bank-card{
+    position:absolute;right:16px;top:-32px;width:118px;height:72px;z-index:2;
+    background:linear-gradient(135deg,#2f6fd0,#173a75);border:1.5px solid rgba(255,255,255,.4);border-radius:10px;
+    padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;
+    font-family:"JetBrains Mono",monospace;font-size:.6rem;font-weight:700;color:#dceaff;letter-spacing:.08em;
+    transform:rotate(3deg);
+    transition:transform .65s var(--spring);
+    box-shadow:0 10px 20px rgba(0,0,0,.45);
+  }
+  .bank-card.in{transform:translateY(30px) rotate(0deg)}
+  .atm.working{animation:atmVibe .13s linear infinite}
+  @keyframes atmVibe{0%{transform:rotate(-.6deg) translateX(0)}25%{transform:rotate(-.6deg) translateX(.7px)}75%{transform:rotate(-.6deg) translateX(-.7px)}100%{transform:rotate(-.6deg) translateX(0)}}
+  .atm.alarm{animation:alarmFlash .5s ease-in-out 3}
+  @keyframes alarmFlash{0%,100%{box-shadow:0 26px 50px -20px rgba(0,0,0,.7)}50%{box-shadow:0 0 0 4px rgba(255,60,50,.85),0 0 46px rgba(255,60,50,.55)}}
+  .atm-screen.flicker{animation:scrFlicker .12s steps(2) 5}
+  @keyframes scrFlicker{0%{opacity:1}50%{opacity:.15}100%{opacity:.7}}
+  .cash-slot{gap:10px}
+  .note.n2{transition-delay:.38s}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+  .key{
+    background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:10px;
+    text-align:center;padding:9px 0;font-family:"JetBrains Mono",monospace;font-size:.85rem;font-weight:700;color:var(--muted);
+    transition:background .15s,color .15s,box-shadow .15s;
+  }
+  .key.lit{background:var(--gold2);color:#22130a;box-shadow:0 0 14px rgba(255,210,63,.7)}
+  .key.enter{color:var(--green)}
+  .key.cancel{color:var(--red)}
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   }
@@ -439,10 +493,28 @@
 
 <div class="bg-scene" aria-hidden="true"><span class="dots"></span><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span><span class="ring r1"></span><span class="ring r2"></span></div>
 
+<button class="sound-toggle" id="soundToggle" type="button" aria-label="Turn sound on or off">🔊 Sound on</button>
+
 <div id="app">
 
+  <!-- ================= WELCOME ================= -->
+  <section class="page active" data-page="welcome">
+    <div class="page-inner">
+      <div class="welcome-wrap">
+        <span class="kicker"><span class="dot"></span> DBMS · Unit 5 · CAT-3 Presentation</span>
+        <h1>Welcome!</h1>
+        <p class="motto">"ALL OR NOTHING."</p>
+        <p class="lede">Today we present <b style="color:var(--ink)">Transaction Management</b> — how a database makes sure an operation like moving money either happens completely, or doesn't happen at all.</p>
+        <p style="color:var(--muted);margin:16px 0 0">Presented by <b style="color:var(--ink)">Kasim Patel</b> (Lead) · Puneeth Kumar · Pratik Naik · Presenter 4</p>
+        <button class="start-btn" id="btnStart" type="button" data-nav="home"><span>Let's Start</span><span class="sb-arrow">→</span></button>
+        <p class="foot-note">🔊 Sound on recommended — the buttons, page changes and the ATM all have sound effects. You can mute anytime with the sound button at the top-right.</p>
+        <span class="tag gold">Trial version — testing the sound &amp; animation</span>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= HOME ================= -->
-  <section class="page active" data-page="home">
+  <section class="page" data-page="home">
     <div class="page-inner">
       <div class="hero-wrap">
         <div class="float-chips" aria-hidden="true">
@@ -809,14 +881,21 @@
 
       <div class="atm-grid">
         <div class="atm" id="atmBox">
+          <div class="card-slot" aria-hidden="true"><span class="cs-label">CARD</span><div class="bank-card" id="bankCard"><span>PATEL BANK</span><span>•••• 1713</span></div></div>
           <div class="atm-screen" id="atmScreen">
             <p class="scr-line">PATEL BANK · ATM</p>
             <p class="scr-line">Account balance</p>
             <p class="scr-big" id="scrBalance">₹5,000</p>
             <p class="scr-line" id="scrMsg">Insert card… ready. Choose a withdrawal option above.</p>
           </div>
-          <div class="cash-slot"><div class="note" id="cashNote">₹1,000</div></div>
-          <p style="text-align:center;color:var(--muted2);font-size:.82rem;margin:10px 0 0">▲ Cash slot — money comes out ONLY after COMMIT</p>
+          <div class="cash-slot"><div class="note" id="cashNote">₹500</div><div class="note n2" id="cashNote2">₹500</div></div>
+          <p style="text-align:center;color:var(--muted2);font-size:.82rem;margin:10px 0 0">▲ Cash slot — two ₹500 notes come out ONLY after COMMIT</p>
+          <div class="keypad" id="keypad" aria-hidden="true">
+            <span class="key">1</span><span class="key">2</span><span class="key">3</span>
+            <span class="key">4</span><span class="key">5</span><span class="key">6</span>
+            <span class="key">7</span><span class="key">8</span><span class="key">9</span>
+            <span class="key cancel">CANCEL</span><span class="key">0</span><span class="key enter">ENTER</span>
+          </div>
         </div>
         <div>
           <div class="db-panel">
@@ -911,10 +990,58 @@
   var $ = function(s, c){ return (c||document).querySelector(s); };
   var $$ = function(s, c){ return Array.prototype.slice.call((c||document).querySelectorAll(s)); };
 
+  /* ---------- Sound engine — synthesized with Web Audio, no audio files ---------- */
+  var audioCtx = null, soundOn = true, noiseBuf = null;
+  var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  function ac(){
+    if(!soundOn) return null;
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }catch(e){ return null; }
+  }
+  function tone(freq, delay, dur, type, vol, slideTo){
+    var ctx = ac(); if(!ctx) return;
+    var t = ctx.currentTime + (delay || 0);
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || "sine";
+    o.frequency.setValueAtTime(freq, t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function noiseHit(delay, dur, freq, vol){
+    var ctx = ac(); if(!ctx) return;
+    if(!noiseBuf){
+      noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.5), ctx.sampleRate);
+      var d = noiseBuf.getChannelData(0);
+      for(var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    var t = ctx.currentTime + (delay || 0);
+    var src = ctx.createBufferSource(); src.buffer = noiseBuf;
+    var f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq || 1800; f.Q.value = 0.8;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(vol || 0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(ctx.destination);
+    src.start(t); src.stop(t + dur + 0.05);
+  }
+  function playClick(){ tone(680, 0, 0.07, "square", 0.07); tone(990, 0.015, 0.05, "sine", 0.05); }
+  function playBeep(fr){ tone(fr || 880, 0, 0.09, "sine", 0.11); }
+  function playWhoosh(){ noiseHit(0, 0.32, 900, 0.09); tone(280, 0, 0.3, "sine", 0.045, 760); }
+  function playStart(){ [523, 659, 784, 1047].forEach(function(fr, i){ tone(fr, i * 0.09, 0.22, "triangle", 0.13); }); noiseHit(0.05, 0.3, 1400, 0.04); }
+  function playCommit(){ tone(784, 0, 0.16, "triangle", 0.13); tone(1047, 0.1, 0.2, "triangle", 0.13); tone(1319, 0.2, 0.3, "sine", 0.09); }
+  function playCash(){ for(var i = 0; i < 6; i++) noiseHit(i * 0.13, 0.07, 2400, 0.12); tone(1568, 0.82, 0.12, "square", 0.06); tone(2093, 0.9, 0.22, "square", 0.06); }
+  function playError(){ tone(170, 0, 0.28, "sawtooth", 0.13, 110); tone(150, 0.32, 0.34, "sawtooth", 0.13, 85); }
+
   /* ---------- Page navigation: in-content buttons + animated swap ---------- */
   var pages = {};
   $$(".page").forEach(function(p){ pages[p.getAttribute("data-page")] = p; });
-  var currentId = "home";
+  var currentId = "welcome";
   var historyStack = [];
   var animating = false;
 
@@ -936,6 +1063,7 @@
     if(animating || !pages[id] || id === currentId) return;
     animating = true;
     historyStack.push(currentId);
+    if(currentId === "welcome"){ playStart(); } else { playWhoosh(); }
     swapTo(id, "fwd");
   }
   function goBack(){
@@ -943,12 +1071,28 @@
     var prev = historyStack.pop();
     if(!prev){ return; }
     animating = true;
+    playWhoosh();
     swapTo(prev, "back");
   }
   document.addEventListener("click", function(e){
     var navEl = e.target.closest("[data-nav]");
     if(navEl){ navigate(navEl.getAttribute("data-nav")); return; }
     if(e.target.closest("[data-back]")){ goBack(); }
+  });
+
+  /* ---------- Button sounds + mute toggle ---------- */
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if(!b || b.disabled) return;
+    if(b.id === "soundToggle" || b.id === "btnStart") return;
+    if(b.hasAttribute("data-nav") || b.hasAttribute("data-back")) return;
+    if(b.closest(".quiz-opts")) return;
+    playClick();
+  });
+  $("#soundToggle").addEventListener("click", function(){
+    soundOn = !soundOn;
+    this.textContent = soundOn ? "🔊 Sound on" : "🔇 Sound off";
+    if(soundOn) playClick();
   });
 
   /* ---------- Scenario toggle (What is TM) ---------- */
@@ -1043,6 +1187,7 @@
   };
   $$(".node").forEach(function(n){
     n.addEventListener("click", function(){
+      playClick();
       $$(".node").forEach(function(x){ x.classList.remove("sel"); });
       n.classList.add("sel");
       var d = diag[n.getAttribute("data-diag")];
@@ -1090,14 +1235,66 @@
     el.textContent = txt;
     el.classList.remove("changed"); void el.offsetWidth; el.classList.add("changed");
   }
-  function scrMsg(t){ $("#scrMsg").textContent = t; }
+  var typeTimer = null;
+  function scrMsg(t){
+    var el = $("#scrMsg");
+    if(reducedMotion){ el.textContent = t; return; }
+    if(typeTimer) clearInterval(typeTimer);
+    el.textContent = "";
+    var i = 0;
+    typeTimer = setInterval(function(){
+      i++;
+      el.textContent = t.slice(0, i);
+      if(i >= t.length){ clearInterval(typeTimer); typeTimer = null; }
+    }, 16);
+  }
+
+  /* ATM machine life: card, keypad lights, working vibration */
+  var keyTimer = null;
+  function cardIn(){ $("#bankCard").classList.add("in"); }
+  function cardOut(){ $("#bankCard").classList.remove("in"); }
+  function startWorking(){
+    $("#atmBox").classList.add("working");
+    var keys = $$("#keypad .key");
+    if(!keys.length || keyTimer) return;
+    keyTimer = setInterval(function(){
+      keys.forEach(function(x){ x.classList.remove("lit"); });
+      keys[Math.floor(Math.random() * keys.length)].classList.add("lit");
+    }, 320);
+  }
+  function stopWorking(){
+    $("#atmBox").classList.remove("working");
+    if(keyTimer){ clearInterval(keyTimer); keyTimer = null; }
+    $$("#keypad .key").forEach(function(x){ x.classList.remove("lit"); });
+  }
+  function stepFx(mode, i, total){
+    if(mode === "fail" && i === 4){
+      playError();
+      $("#atmBox").classList.add("alarm");
+      $("#atmScreen").classList.add("flicker");
+      return;
+    }
+    if(i === total - 1){
+      if(mode === "success"){
+        playCommit(); playCash();
+        setTimeout(function(){ $("#cashNote2").classList.add("out"); }, 380);
+      } else {
+        playClick();
+        $("#atmBox").classList.remove("alarm");
+      }
+      return;
+    }
+    playBeep(760 + i * 60);
+  }
 
   function resetSim(){
     timers.forEach(clearTimeout); timers = [];
     playing = false; simMode = null; stepIdx = 0;
-    $("#atmScreen").classList.remove("off");
-    $("#atmBox").classList.remove("power-flash");
+    $("#atmScreen").classList.remove("off","flicker");
+    $("#atmBox").classList.remove("power-flash","alarm");
     $("#cashNote").classList.remove("out");
+    $("#cashNote2").classList.remove("out");
+    stopWorking(); cardOut();
     $("#dbBalance").textContent = fmt(START);
     $("#dbBalance").classList.remove("pending");
     $("#scrBalance").textContent = fmt(START);
@@ -1140,22 +1337,25 @@
     resetSim();
     simMode = mode; playing = true; setBtns(true);
     var steps = mode === "fail" ? failSteps() : successSteps();
+    cardIn(); startWorking();
     steps.forEach(function(fn, i){
       timers.push(setTimeout(function(){
         fn();
-        if(i === steps.length-1){ playing = false; setBtns(false); }
+        stepFx(mode, i, steps.length);
+        if(i === steps.length-1){ playing = false; setBtns(false); stopWorking(); cardOut(); }
       }, 350 + i*1250));
     });
   }
   function stepSim(){
     if(playing) return;
-    if(!simMode){ simMode = "success"; stepIdx = 0; $("#simLog").innerHTML = ""; log("Stepping manually through the <b>normal</b> withdrawal…"); }
+    if(!simMode){ simMode = "success"; stepIdx = 0; $("#simLog").innerHTML = ""; log("Stepping manually through the <b>normal</b> withdrawal…"); cardIn(); startWorking(); }
     var steps = simMode === "fail" ? failSteps() : successSteps();
     if(stepIdx >= steps.length){ resetSim(); return; }
     if(stepIdx === 0 && $("#simLog").textContent.indexOf("will appear") > -1){ $("#simLog").innerHTML = ""; }
     steps[stepIdx]();
+    stepFx(simMode, stepIdx, steps.length);
     stepIdx++;
-    if(stepIdx >= steps.length){ log("· End of steps. Press Reset to run again."); }
+    if(stepIdx >= steps.length){ log("· End of steps. Press Reset to run again."); stopWorking(); cardOut(); }
   }
   $("#btnSuccess").addEventListener("click", function(){ runSim("success"); });
   $("#btnFail").addEventListener("click", function(){ runSim("fail"); });
@@ -1177,6 +1377,7 @@
       var fb = document.querySelector('[data-fb="'+q+'"]');
       fb.textContent = right ? "✓ " + quizFb[q].right : "✕ " + quizFb[q].wrong;
       fb.style.color = right ? "var(--green)" : "var(--red)";
+      if(right){ playCommit(); } else { playError(); }
       fb.classList.add("show");
     });
   });
