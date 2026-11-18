@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="data:," />
+<title>Transaction Management — Interactive Presentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0c0e13;
+    --bg2:#11141c;
+    --panel:#161a24;
+    --panel2:#1c212e;
+    --line:#2a3040;
+    --ink:#f4efe3;
+    --muted:#b9bfae;
+    --muted2:#9aa3b5;
+    --gold:#e6b83c;
+    --gold2:#f5d67a;
+    --gold-dim:rgba(230,184,60,.14);
+    --green:#4ade80;
+    --red:#f87171;
+    --blue:#7dd3fc;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Public Sans",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  h1,h2,h3,.display{font-family:"Bricolage Grotesque","Public Sans",sans-serif}
+  .mono{font-family:"JetBrains Mono",monospace}
+  button{font-family:inherit;cursor:pointer}
+  button,[role="button"],summary{min-height:2.75rem}
+
+  /* ---------- Page frame + animated transitions ---------- */
+  #app{position:relative;height:100dvh;overflow:hidden}
+  .page{
+    position:absolute;inset:0;overflow-y:auto;
+    padding:clamp(18px,4vw,52px);
+    display:none;
+    background:
+      radial-gradient(900px 480px at 85% -10%, rgba(230,184,60,.09), transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, rgba(125,211,252,.05), transparent 60%),
+      var(--bg);
+  }
+  .page.active{display:block}
+  .page.enter-fwd{animation:pageInFwd .55s cubic-bezier(.22,.9,.3,1) both}
+  .page.enter-back{animation:pageInBack .55s cubic-bezier(.22,.9,.3,1) both}
+  .page.leave-fwd{animation:pageOutFwd .3s ease-in both;pointer-events:none}
+  .page.leave-back{animation:pageOutBack .3s ease-in both;pointer-events:none}
+  @keyframes pageInFwd{from{opacity:0;transform:translateX(56px) scale(.995)}to{opacity:1;transform:none}}
+  @keyframes pageInBack{from{opacity:0;transform:translateX(-56px) scale(.995)}to{opacity:1;transform:none}}
+  @keyframes pageOutFwd{from{opacity:1;transform:none}to{opacity:0;transform:translateX(-40px) scale(.995)}}
+  @keyframes pageOutBack{from{opacity:1;transform:none}to{opacity:0;transform:translateX(40px) scale(.995)}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .page-inner{max-width:1060px;margin:0 auto}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--gold);background:var(--gold-dim);
+    border:1px solid rgba(230,184,60,.35);border-radius:999px;
+    padding:6px 14px;margin-bottom:18px;
+  }
+  .kicker .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+  h1{font-size:clamp(2.4rem,7vw,4.6rem);line-height:1.02;margin:0 0 14px;font-weight:800}
+  h2{font-size:clamp(1.7rem,4.4vw,2.7rem);line-height:1.08;margin:0 0 12px;font-weight:800}
+  h3{font-size:1.15rem;margin:0 0 6px}
+  .lede{font-size:clamp(1.02rem,2vw,1.25rem);color:var(--muted);line-height:1.55;max-width:62ch}
+  .gold{color:var(--gold)}
+  p{line-height:1.6}
+
+  /* ---------- In-page wayfinding buttons ---------- */
+  .waybar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:26px}
+  .waybtn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;
+    padding:9px 16px;font-size:.92rem;font-weight:600;min-height:44px;
+  }
+  .waybtn:hover{border-color:var(--gold);color:var(--gold2)}
+  .continue-row{margin-top:34px;display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
+  .continue-btn{
+    flex:1 1 320px;display:flex;align-items:center;gap:16px;text-align:left;
+    background:linear-gradient(120deg,rgba(230,184,60,.16),var(--panel) 65%);
+    border:1px solid rgba(230,184,60,.5);border-radius:var(--radius);
+    padding:20px 22px;color:var(--ink);min-height:44px;
+    transition:border-color .2s, transform .2s, background .2s;
+  }
+  .continue-btn:hover{border-color:var(--gold);transform:translateY(-2px)}
+  .continue-btn .cb-label{font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+  .continue-btn .cb-title{font-family:"Bricolage Grotesque",sans-serif;font-size:1.3rem;font-weight:800;line-height:1.15;margin-top:3px}
+  .continue-btn .cb-arrow{margin-left:auto;font-size:1.7rem;color:var(--gold);flex:0 0 auto}
+  .home-btn{
+    display:inline-flex;align-items:center;gap:10px;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 22px;color:var(--ink);font-weight:700;font-size:1rem;min-height:44px;
+  }
+  .home-btn:hover{border-color:var(--gold);color:var(--gold2)}
+
+  /* ---------- Generic cards ---------- */
+  .grid{display:grid;gap:16px}
+  .grid.c2{grid-template-columns:repeat(2,1fr)}
+  .grid.c3{grid-template-columns:repeat(3,1fr)}
+  .grid.c4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:820px){.grid.c2,.grid.c3,.grid.c4{grid-template-columns:1fr}}
+  @media(min-width:821px) and (max-width:1020px){.grid.c4{grid-template-columns:repeat(2,1fr)}.grid.c3{grid-template-columns:1fr}}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;
+  }
+  .card h3{color:var(--ink)}
+  .card p{color:var(--muted);margin:6px 0 0;font-size:.97rem}
+  .tag{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:99px;background:var(--panel2);color:var(--muted2);border:1px solid var(--line)}
+  .tag.gold{background:var(--gold-dim);color:var(--gold2);border-color:rgba(230,184,60,.4)}
+  .tag.green{background:rgba(74,222,128,.12);color:var(--green);border-color:rgba(74,222,128,.35)}
+  .tag.red{background:rgba(248,113,113,.12);color:var(--red);border-color:rgba(248,113,113,.35)}
+
+  /* ---------- Home / hero ---------- */
+  .hero-wrap{display:flex;flex-direction:column;justify-content:center;padding-top:clamp(6px,3vh,34px)}
+  .motto{font-family:"JetBrains Mono",monospace;color:var(--gold);font-size:clamp(.95rem,2.4vw,1.2rem);letter-spacing:.06em}
+  .title-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+  .float-chips{position:relative;height:0}
+  .fchip{
+    position:absolute;font-family:"JetBrains Mono",monospace;font-size:.78rem;
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    padding:7px 12px;border-radius:99px;animation:floaty 5s ease-in-out infinite;
+  }
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @media(max-width:700px){.float-chips{display:none}}
+
+  /* Journey cards on Home */
+  .journey-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:46px 0 16px}
+  .journey-head h2{font-size:clamp(1.4rem,3vw,2rem);margin:0}
+  .journey-head p{color:var(--muted2);margin:0;font-size:.95rem}
+  .jcard{
+    display:flex;gap:16px;align-items:flex-start;text-align:left;width:100%;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;color:var(--ink);min-height:44px;
+    transition:border-color .2s, transform .2s, background .2s;
+  }
+  .jcard:hover{border-color:var(--gold);transform:translateY(-3px);background:linear-gradient(180deg,rgba(230,184,60,.07),var(--panel) 70%)}
+  .jcard .jicon{
+    flex:0 0 auto;width:48px;height:48px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--gold-dim);border:1px solid rgba(230,184,60,.4);
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:1.05rem;color:var(--gold2);
+  }
+  .jcard h3{font-size:1.12rem;margin:2px 0 4px}
+  .jcard p{color:var(--muted);margin:0;font-size:.93rem;line-height:1.5}
+  .jcard .jarrow{margin-left:auto;align-self:center;font-size:1.4rem;color:var(--gold);flex:0 0 auto}
+  .jcard.star{border-color:rgba(230,184,60,.55);background:linear-gradient(120deg,rgba(230,184,60,.13),var(--panel) 60%)}
+
+  /* Team */
+  .person{border-top:4px solid var(--line)}
+  .person.lead{border-top-color:var(--gold);background:linear-gradient(180deg,rgba(230,184,60,.08),var(--panel) 55%)}
+  .avatar{
+    width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    background:var(--panel2);border:1px solid var(--line);
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:1.25rem;color:var(--gold);
+    margin-bottom:12px;
+  }
+  .person ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:.93rem;line-height:1.55}
+
+  /* Scenario toggle */
+  .scenario-outcome{border-radius:var(--radius);padding:20px;border:1px solid var(--line);background:var(--panel)}
+  .money-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:14px 0}
+  .acct{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:150px}
+  .acct .who{font-size:.78rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .acct .amt{font-family:"JetBrains Mono",monospace;font-size:1.3rem;font-weight:700;margin-top:2px}
+  .arrow{font-size:1.4rem;color:var(--gold)}
+  .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;flex-wrap:wrap}
+  .seg button{border:0;background:transparent;color:var(--muted);border-radius:9px;padding:9px 16px;font-weight:700;font-size:.92rem;min-height:44px}
+  .seg button.sel{background:var(--gold);color:#191203}
+
+  /* Steps */
+  .steps{list-style:none;margin:0;padding:0;counter-reset:st}
+  .steps li{
+    display:flex;gap:16px;padding:16px 18px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);margin-bottom:12px;align-items:flex-start;
+  }
+  .steps .n{
+    flex:0 0 auto;width:38px;height:38px;border-radius:50%;
+    background:var(--gold-dim);border:1px solid rgba(230,184,60,.45);color:var(--gold2);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-family:"JetBrains Mono",monospace;
+  }
+  .steps p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+  .sql{font-family:"JetBrains Mono",monospace;font-size:.86rem;background:#0a0c10;border:1px solid var(--line);border-radius:8px;padding:3px 9px;color:var(--blue);display:inline-block;margin-top:6px}
+
+  /* Interactive option cards */
+  .opt{
+    text-align:left;width:100%;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px;color:var(--ink);min-height:44px;
+    transition:border-color .2s, background .2s;
+  }
+  .opt:hover{border-color:var(--gold)}
+  .opt.sel{border-color:var(--gold);background:linear-gradient(180deg,rgba(230,184,60,.1),var(--panel) 70%)}
+  .opt .big{font-family:"Bricolage Grotesque",sans-serif;font-size:2rem;font-weight:800;color:var(--gold);line-height:1}
+  .detail-box{
+    margin-top:16px;background:var(--panel);border:1px solid rgba(230,184,60,.4);border-radius:var(--radius);
+    padding:20px;animation:riseIn .3s ease both;
+  }
+  .detail-box p{color:var(--muted);margin:6px 0 0}
+  .detail-box .ex{margin-top:12px;background:#0a0c10;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:.95rem}
+  .detail-box .ex b{color:var(--gold2)}
+
+  /* State pills / stepper */
+  .state-flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0}
+  .state-flow .arr{color:var(--muted2)}
+  .spill{
+    font-family:"JetBrains Mono",monospace;font-size:.82rem;font-weight:700;
+    padding:9px 14px;border-radius:99px;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted);min-height:40px;
+  }
+  button.spill{cursor:pointer}
+  button.spill:hover{border-color:var(--gold)}
+  .spill.cur{background:var(--gold);color:#191203;border-color:var(--gold)}
+  .spill.done{background:var(--gold-dim);color:var(--gold2);border-color:rgba(230,184,60,.5)}
+  .spill.bad{background:rgba(248,113,113,.15);color:var(--red);border-color:rgba(248,113,113,.5)}
+
+  /* SVG diagram */
+  .diagram-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px;overflow:hidden}
+  svg text{font-family:"JetBrains Mono",monospace}
+  .node{cursor:pointer}
+  .node rect{fill:#1c212e;stroke:#2a3040;stroke-width:1.5;transition:all .2s}
+  .node:hover rect{stroke:var(--gold)}
+  .node.sel rect{stroke:var(--gold);fill:rgba(230,184,60,.16)}
+  .node text{fill:var(--ink);font-size:13px;font-weight:700}
+  .edge{stroke:#5b6480;stroke-width:1.6;fill:none;marker-end:url(#ah)}
+  .edge-lab{fill:#9aa3b5;font-size:11px}
+
+  /* ---------- ATM simulator ---------- */
+  .atm-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:860px){.atm-grid{grid-template-columns:1fr}}
+  .atm{
+    background:linear-gradient(180deg,#232838,#171b26);border:1px solid var(--line);
+    border-radius:18px;padding:20px;position:relative;overflow:hidden;
+  }
+  .atm-screen{
+    background:#070d08;border:1px solid #243528;border-radius:12px;padding:16px;
+    font-family:"JetBrains Mono",monospace;color:#8df0a8;min-height:148px;position:relative;
+  }
+  .atm-screen.off{color:#3d5546;background:#050705}
+  .atm-screen .scr-line{margin:0 0 6px;font-size:.92rem;line-height:1.45}
+  .atm-screen .scr-big{font-size:1.5rem;font-weight:700;color:#c9ffd6}
+  .atm-screen.off .scr-big{color:#33503c}
+  .cash-slot{margin-top:16px;background:#0a0c10;border:1px solid var(--line);border-radius:10px;height:64px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .note{
+    background:linear-gradient(135deg,#f5d67a,#e6b83c);color:#4a3503;font-weight:800;
+    font-family:"JetBrains Mono",monospace;padding:8px 22px;border-radius:6px;font-size:1.05rem;
+    transform:translateY(-70px);opacity:0;transition:all .7s ease;
+  }
+  .note.out{transform:translateY(0);opacity:1}
+  .db-panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+  .db-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+  .db-row:last-child{border-bottom:0}
+  .db-row .k{color:var(--muted2);font-size:.88rem;font-weight:600}
+  .db-row .v{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:1.12rem}
+  .v.pending{color:var(--gold2)}
+  .v.changed{animation:flash .6s ease}
+  @keyframes flash{0%{background:rgba(230,184,60,.45)}100%{background:transparent}}
+  .sim-log{
+    background:#0a0c10;border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;font-family:"JetBrains Mono",monospace;font-size:.86rem;
+    max-height:230px;overflow-y:auto;
+  }
+  .sim-log div{padding:3px 0;color:var(--muted);animation:riseIn .3s ease both}
+  .sim-log div b{color:var(--gold2)}
+  .sim-log div.ok{color:var(--green)}
+  .sim-log div.err{color:var(--red)}
+  .sim-btns{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+  .cbtn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;
+    padding:9px 16px;font-size:.92rem;font-weight:600;min-height:48px;
+  }
+  .cbtn:hover{border-color:var(--gold)}
+  .cbtn.primary{background:var(--gold);color:#191203;border-color:var(--gold)}
+  .cbtn.primary:hover{background:var(--gold2)}
+  .cbtn[disabled]{opacity:.4;cursor:default}
+  .power-flash{animation:powerFlash .5s ease}
+  @keyframes powerFlash{0%,60%{filter:brightness(2.2)}100%{filter:none}}
+
+  /* Quiz */
+  .quiz-q{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+  .quiz-q h3{margin-bottom:12px}
+  .quiz-opts{display:grid;gap:8px}
+  .quiz-opts button{
+    text-align:left;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:11px 14px;font-size:.95rem;min-height:44px;
+  }
+  .quiz-opts button.right{border-color:var(--green);background:rgba(74,222,128,.12)}
+  .quiz-opts button.wrong{border-color:var(--red);background:rgba(248,113,113,.12)}
+  .quiz-fb{margin-top:10px;font-size:.93rem;display:none}
+  .quiz-fb.show{display:block}
+
+  .foot-note{color:var(--muted2);font-size:.88rem;margin-top:26px}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ================= HOME ================= -->
+  <section class="page active" data-page="home">
+    <div class="page-inner">
+      <div class="hero-wrap">
+        <div class="float-chips" aria-hidden="true">
+          <span class="fchip" style="top:-64px;right:6%">Active</span>
+          <span class="fchip" style="top:-30px;right:26%;animation-delay:.8s">Partially Committed</span>
+          <span class="fchip" style="top:-84px;right:38%;animation-delay:1.6s">Committed ✓</span>
+          <span class="fchip" style="top:-14px;right:2%;animation-delay:2.2s">Aborted ↩</span>
+        </div>
+        <span class="kicker"><span class="dot"></span> DBMS · Unit 5 · Topic 1 · CAT-3</span>
+        <h1>Transaction<br/>Management</h1>
+        <p class="motto">"ALL OR NOTHING."</p>
+        <p class="lede">How a database guarantees that a group of operations either happens completely — or doesn't happen at all. No half-done transfers. No vanished money. Pick a topic below and explore it interactively.</p>
+        <div class="title-meta">
+          <span class="tag gold">Presented by a team of 4</span>
+          <span class="tag">Lead presenter · Kasim Patel</span>
+          <span class="tag green">Live animated ATM simulator inside</span>
+        </div>
+      </div>
+
+      <div class="journey-head">
+        <h2>Start the journey</h2>
+        <p>Eight stops, in order — or jump straight to any topic.</p>
+      </div>
+      <div class="grid c2">
+        <button class="jcard" type="button" data-nav="what">
+          <span class="jicon">₹?</span>
+          <span><h3>What is Transaction Management?</h3><p>The ₹500 transfer that vanished mid-way — and the mechanism that makes sure it can never happen.</p></span>
+          <span class="jarrow">→</span>
+        </button>
+        <button class="jcard" type="button" data-nav="transaction">
+          <span class="jicon">T1</span>
+          <span><h3>What is a Transaction?</h3><p>One transfer, broken into its five real steps — from BEGIN to COMMIT.</p></span>
+          <span class="jarrow">→</span>
+        </button>
+        <button class="jcard" type="button" data-nav="operations">
+          <span class="jicon">R/W</span>
+          <span><h3>The Five Operations</h3><p>Read, Write, Insert, Update, Delete — the building blocks inside every transaction. Tap each one.</p></span>
+          <span class="jarrow">→</span>
+        </button>
+        <button class="jcard" type="button" data-nav="acid">
+          <span class="jicon">ACID</span>
+          <span><h3>ACID Properties</h3><p>The four promises that make a transaction trustworthy — one example per letter.</p></span>
+          <span class="jarrow">→</span>
+        </button>
+        <button class="jcard" type="button" data-nav="states">
+          <span class="jicon">6</span>
+          <span><h3>Six States of a Transaction</h3><p>Two roads — the success road and the failure road — and every state along the way.</p></span>
+          <span class="jarrow">→</span>
+        </button>
+        <button class="jcard" type="button" data-nav="diagram">
+          <span class="jicon">⇢</span>
+          <span><h3>State Transition Diagram</h3><p>Every road a transaction can travel, in one clickable picture.</p></span>
+          <span class="jarrow">→</span>
+        </button>
+        <button class="jcard star" type="button" data-nav="atm">
+          <span class="jicon">ATM</span>
+          <span><h3>ATM Simulator — Live Demo</h3><p>Withdraw ₹1,000 and watch the states change live. Then cut the power mid-transaction and watch the rollback save your money.</p></span>
+          <span class="jarrow">→</span>
+        </button>
+        <button class="jcard" type="button" data-nav="quiz">
+          <span class="jicon">?</span>
+          <span><h3>Recap &amp; Quick Quiz</h3><p>The three things to remember, plus three questions to check the class got it.</p></span>
+          <span class="jarrow">→</span>
+        </button>
+      </div>
+
+      <div class="journey-head">
+        <h2>Four presenters. One transaction.</h2>
+        <p>Like a transaction, this works as one unit — each of us completes one part.</p>
+      </div>
+      <div class="grid c4">
+        <div class="card person lead">
+          <div class="avatar">K</div>
+          <span class="tag gold">Lead · Starts</span>
+          <h3 style="margin-top:10px">Kasim Patel</h3>
+          <ul>
+            <li>The "All or Nothing" hook</li>
+            <li>Team introduction</li>
+            <li>What Transaction Management is — the ₹500 transfer story</li>
+          </ul>
+        </div>
+        <div class="card person">
+          <div class="avatar">P</div>
+          <span class="tag">Presenter 2</span>
+          <h3 style="margin-top:10px">Puneeth Kumar</h3>
+          <ul>
+            <li>What a Transaction is — 5 steps of one transfer</li>
+            <li>The Five Operations — Read, Write, Insert, Update, Delete</li>
+          </ul>
+        </div>
+        <div class="card person">
+          <div class="avatar">P</div>
+          <span class="tag">Presenter 3</span>
+          <h3 style="margin-top:10px">Pratik Naik</h3>
+          <ul>
+            <li>ACID Properties — the 4 promises</li>
+            <li>The Six States a transaction passes through</li>
+          </ul>
+        </div>
+        <div class="card person">
+          <div class="avatar">4</div>
+          <span class="tag">Presenter 4 · Closes</span>
+          <h3 style="margin-top:10px">The Proof</h3>
+          <ul>
+            <li>State Transition Diagram — walked live</li>
+            <li>ATM ₹1,000 animated demo — success + power failure</li>
+            <li>Thank-you &amp; questions</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="foot-note">Content follows DBMS Unit 5, Topic 1 — Transaction Management: definition, five operations, ACID properties, six transaction states, state transition diagram, and the ATM ₹1,000 example.</p>
+      <div style="height:14px"></div>
+    </div>
+  </section>
+
+  <!-- ================= WHAT IS TM ================= -->
+  <section class="page" data-page="what">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> The problem it solves</span>
+      <h2>What is Transaction Management?</h2>
+      <p class="lede">You send <b style="color:var(--ink)">₹500</b> to a friend. Your account is debited — and then the app crashes before your friend is credited. The money has vanished. Transaction Management is the part of the DBMS that makes sure this can never happen.</p>
+      <div style="margin:20px 0">
+        <div class="seg" role="group" aria-label="Scenario toggle">
+          <button id="segBad" class="sel" type="button">✕ Without Transaction Management</button>
+          <button id="segGood" type="button">✓ With Transaction Management</button>
+        </div>
+      </div>
+      <div class="scenario-outcome" id="scenarioBox">
+        <div class="money-row">
+          <div class="acct"><div class="who">Your account</div><div class="amt" id="acctA">₹1,000 → ₹500</div></div>
+          <span class="arrow">— ₹500 —➜</span>
+          <div class="acct"><div class="who">Friend's account</div><div class="amt" id="acctB">₹200 → ₹200</div></div>
+          <span class="tag red" id="scenarioTag">₹500 LOST</span>
+        </div>
+        <p id="scenarioText" style="color:var(--muted);margin:0">The debit succeeded, the credit never happened. The database is left <b style="color:var(--ink)">inconsistent</b> — ₹500 exists nowhere. This is exactly the failure a DBMS must prevent.</p>
+      </div>
+      <div class="grid c3" style="margin-top:16px">
+        <div class="card"><h3>It manages</h3><p>Every transaction from its start (begin) to its end — <b style="color:var(--ink)">commit</b> if all steps succeed, <b style="color:var(--ink)">rollback</b> if anything fails.</p></div>
+        <div class="card"><h3>It protects</h3><p>The database stays <b style="color:var(--ink)">consistent</b> even during crashes, power failures and many users working at the same time.</p></div>
+        <div class="card"><h3>It guarantees</h3><p><b style="color:var(--ink)">All or Nothing</b> — a transaction's changes are either fully saved or fully undone. Never in between.</p></div>
+      </div>
+      <div class="continue-row">
+        <button class="continue-btn" type="button" data-nav="transaction">
+          <span><span class="cb-label">Continue the journey</span><div class="cb-title">What is a Transaction?</div></span>
+          <span class="cb-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= WHAT IS A TRANSACTION ================= -->
+  <section class="page" data-page="transaction">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> The unit of work</span>
+      <h2>What is a Transaction?</h2>
+      <p class="lede">A <b style="color:var(--ink)">transaction</b> is a single logical unit of work made of one or more database operations, executed together. Here is one ₹500 transfer, broken into its real steps:</p>
+      <ol class="steps" style="margin-top:22px">
+        <li><span class="n">1</span><div><h3>Begin</h3><p>The transaction starts. The DBMS notes: "a unit of work has begun — track everything from here."</p><span class="sql">BEGIN TRANSACTION;</span></div></li>
+        <li><span class="n">2</span><div><h3>Read your balance</h3><p>Fetch the current balance of your account from the database into memory.</p><span class="sql">READ ( Your_Account ) → ₹1,000</span></div></li>
+        <li><span class="n">3</span><div><h3>Debit ₹500</h3><p>Subtract the amount and write the new balance back.</p><span class="sql">Your_Account = 1,000 − 500 → WRITE ₹500</span></div></li>
+        <li><span class="n">4</span><div><h3>Credit ₹500</h3><p>Read your friend's balance, add the amount, write it back.</p><span class="sql">Friend_Account = 200 + 500 → WRITE ₹700</span></div></li>
+        <li><span class="n">5</span><div><h3>Commit</h3><p>Every step succeeded — so the DBMS saves all changes permanently, together.</p><span class="sql">COMMIT;</span></div></li>
+      </ol>
+      <p class="lede" style="font-size:1rem">If step 3 succeeds but step 4 fails, steps 1–3 are <b style="color:var(--ink)">undone (rolled back)</b> — the transaction counts as never having happened.</p>
+      <div class="continue-row">
+        <button class="continue-btn" type="button" data-nav="operations">
+          <span><span class="cb-label">Continue the journey</span><div class="cb-title">The Five Operations</div></span>
+          <span class="cb-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FIVE OPERATIONS ================= -->
+  <section class="page" data-page="operations">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> Tap each operation</span>
+      <h2>The Five Operations</h2>
+      <p class="lede">Every transaction is built from these five basic operations on data. Tap each one to see what it does and where it appeared in our transfer.</p>
+      <div class="grid c3" style="margin-top:22px" id="opsGrid">
+        <button class="opt sel" type="button" data-op="read"><span class="big">R</span><h3 style="margin-top:8px">Read</h3><p>Fetch data from the database into memory, without changing it.</p></button>
+        <button class="opt" type="button" data-op="write"><span class="big">W</span><h3 style="margin-top:8px">Write</h3><p>Store a new value for an existing item in the database.</p></button>
+        <button class="opt" type="button" data-op="insert"><span class="big">I</span><h3 style="margin-top:8px">Insert</h3><p>Add a completely new record (row) to a table.</p></button>
+        <button class="opt" type="button" data-op="update"><span class="big">U</span><h3 style="margin-top:8px">Update</h3><p>Modify values in an existing record — a read + a write together.</p></button>
+        <button class="opt" type="button" data-op="delete"><span class="big">D</span><h3 style="margin-top:8px">Delete</h3><p>Remove an existing record from the table permanently.</p></button>
+        <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+          <h3>The transfer used…</h3>
+          <p><b style="color:var(--ink)">Read</b> (both balances) and <b style="color:var(--ink)">Write</b> (both new balances). Insert, Update and Delete appear in other transactions — like opening an account, changing an address, or closing an account.</p>
+        </div>
+      </div>
+      <div class="detail-box" id="opDetail">
+        <span class="tag gold">Read · R ( X )</span>
+        <p>Transfers the data item X from the database into a variable in memory so the transaction can work with it. Reading never changes the stored data.</p>
+        <div class="ex">In our example: <b>READ ( Your_Account )</b> brought the balance ₹1,000 into memory — the very first thing the transfer did.</div>
+      </div>
+      <div class="continue-row">
+        <button class="continue-btn" type="button" data-nav="acid">
+          <span><span class="cb-label">Continue the journey</span><div class="cb-title">ACID Properties</div></span>
+          <span class="cb-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ACID ================= -->
+  <section class="page" data-page="acid">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> Tap each letter</span>
+      <h2>ACID Properties</h2>
+      <p class="lede">Four guarantees that make a transaction trustworthy. Together they are the reason banks, railways and payment apps can trust a database with real money.</p>
+      <div class="grid c4" style="margin-top:22px" id="acidGrid">
+        <button class="opt sel" type="button" data-acid="a"><span class="big">A</span><h3 style="margin-top:8px">Atomicity</h3><p>All or nothing.</p></button>
+        <button class="opt" type="button" data-acid="c"><span class="big">C</span><h3 style="margin-top:8px">Consistency</h3><p>Valid → valid.</p></button>
+        <button class="opt" type="button" data-acid="i"><span class="big">I</span><h3 style="margin-top:8px">Isolation</h3><p>No interference.</p></button>
+        <button class="opt" type="button" data-acid="d"><span class="big">D</span><h3 style="margin-top:8px">Durability</h3><p>Saved means saved.</p></button>
+      </div>
+      <div class="detail-box" id="acidDetail">
+        <span class="tag gold">A · Atomicity</span>
+        <p>A transaction is treated as one indivisible atom — either <b style="color:var(--ink)">all</b> of its operations are completed, or <b style="color:var(--ink)">none</b> of them are. There is no middle state.</p>
+        <div class="ex">Example: <b>₹500 transfer</b> — if the credit fails after the debit, the debit is rolled back. Your balance returns to exactly what it was.</div>
+      </div>
+      <div class="continue-row">
+        <button class="continue-btn" type="button" data-nav="states">
+          <span><span class="cb-label">Continue the journey</span><div class="cb-title">Six States of a Transaction</div></span>
+          <span class="cb-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SIX STATES ================= -->
+  <section class="page" data-page="states">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> Tap a state</span>
+      <h2>Six States of a Transaction</h2>
+      <p class="lede">From the moment a transaction begins to the moment it ends, it is always in exactly one of these six states.</p>
+      <div class="state-flow" id="stateFlow">
+        <button class="spill sel cur" type="button" data-state="active">1 · Active</button><span class="arr">→</span>
+        <button class="spill" type="button" data-state="partial">2 · Partially Committed</button><span class="arr">→</span>
+        <button class="spill" type="button" data-state="committed">3 · Committed</button><span class="arr">→</span>
+        <button class="spill" type="button" data-state="terminated">6 · Terminated</button>
+      </div>
+      <div class="state-flow">
+        <button class="spill" type="button" data-state="failed">4 · Failed</button><span class="arr">→</span>
+        <button class="spill" type="button" data-state="aborted">5 · Aborted</button><span class="arr">→</span>
+        <span style="color:var(--muted2);font-size:.9rem">also ends at Terminated</span>
+      </div>
+      <div class="detail-box" id="stateDetail">
+        <span class="tag gold">State 1 · Active</span>
+        <p>The transaction has begun and is executing its operations — reading and writing data. <b style="color:var(--ink)">Every transaction starts here.</b> Our transfer is Active while it debits and credits.</p>
+      </div>
+      <div class="grid c2" style="margin-top:16px">
+        <div class="card"><span class="tag green">Success path</span><p style="margin-top:8px">Active → Partially Committed → <b style="color:var(--ink)">Committed</b> → Terminated. All changes become permanent.</p></div>
+        <div class="card"><span class="tag red">Failure path</span><p style="margin-top:8px">Active → <b style="color:var(--ink)">Failed</b> → Aborted → Terminated. All changes are rolled back, as if nothing happened.</p></div>
+      </div>
+      <div class="continue-row">
+        <button class="continue-btn" type="button" data-nav="diagram">
+          <span><span class="cb-label">Continue the journey</span><div class="cb-title">State Transition Diagram</div></span>
+          <span class="cb-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= STATE DIAGRAM ================= -->
+  <section class="page" data-page="diagram">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> Tap any state</span>
+      <h2>State Transition Diagram</h2>
+      <p class="lede">Every road a transaction can travel, in one picture. Tap a state to see when a transaction enters it and where it can go next.</p>
+      <div class="diagram-wrap" style="margin-top:18px">
+        <svg viewBox="0 0 760 340" width="100%" role="img" aria-label="Transaction state transition diagram" style="display:block">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#5b6480"></path>
+            </marker>
+          </defs>
+          <path class="edge" d="M190,80 L300,80"></path>
+          <text class="edge-lab" x="205" y="66">all operations done</text>
+          <path class="edge" d="M470,80 L580,80"></path>
+          <text class="edge-lab" x="492" y="66">commit</text>
+          <path class="edge" d="M105,108 L105,196"></path>
+          <text class="edge-lab" x="114" y="156">failure / error</text>
+          <path class="edge" d="M190,224 L300,224"></path>
+          <text class="edge-lab" x="212" y="210">rollback</text>
+          <path class="edge" d="M470,224 L580,224"></path>
+          <text class="edge-lab" x="488" y="210">after rollback</text>
+          <path class="edge" d="M652,108 L652,196"></path>
+          <text class="edge-lab" x="600" y="156">end</text>
+          <g class="node sel" data-diag="active"><rect x="20" y="52" width="170" height="56" rx="12"></rect><text x="105" y="86" text-anchor="middle">ACTIVE</text></g>
+          <g class="node" data-diag="partial"><rect x="300" y="52" width="170" height="56" rx="12"></rect><text x="385" y="79" text-anchor="middle">PARTIALLY</text><text x="385" y="97" text-anchor="middle">COMMITTED</text></g>
+          <g class="node" data-diag="committed"><rect x="580" y="52" width="150" height="56" rx="12"></rect><text x="655" y="86" text-anchor="middle">COMMITTED</text></g>
+          <g class="node" data-diag="failed"><rect x="20" y="196" width="170" height="56" rx="12"></rect><text x="105" y="230" text-anchor="middle">FAILED</text></g>
+          <g class="node" data-diag="aborted"><rect x="300" y="196" width="170" height="56" rx="12"></rect><text x="385" y="230" text-anchor="middle">ABORTED</text></g>
+          <g class="node" data-diag="terminated"><rect x="580" y="196" width="150" height="56" rx="12"></rect><text x="655" y="230" text-anchor="middle">TERMINATED</text></g>
+          <text class="edge-lab" x="20" y="300">Begin → every transaction enters at ACTIVE. It can leave only two ways: finish all operations, or fail.</text>
+        </svg>
+      </div>
+      <div class="detail-box" id="diagDetail">
+        <span class="tag gold">Active</span>
+        <p>The starting state. The transaction is executing its read and write operations. From here it can only go to <b style="color:var(--ink)">Partially Committed</b> (all operations finished) or <b style="color:var(--ink)">Failed</b> (an error occurred).</p>
+      </div>
+      <div class="continue-row">
+        <button class="continue-btn" type="button" data-nav="atm">
+          <span><span class="cb-label">Continue the journey</span><div class="cb-title">ATM Simulator — Watch It Live</div></span>
+          <span class="cb-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ATM SIMULATOR ================= -->
+  <section class="page" data-page="atm">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> The live demo</span>
+      <h2>ATM Example — Watch a Transaction Live</h2>
+      <p class="lede">Your account holds <b style="color:var(--ink)">₹5,000</b>. You withdraw <b style="color:var(--ink)">₹1,000</b>. Run it once the normal way — then run it again and cut the power mid-transaction, and watch the rollback save your money.</p>
+
+      <div class="state-flow" id="simStates" aria-label="Transaction state tracker">
+        <span class="spill" data-sim="active">Active</span><span class="arr">→</span>
+        <span class="spill" data-sim="partial">Partially Committed</span><span class="arr">→</span>
+        <span class="spill" data-sim="committed">Committed</span>
+        <span style="width:14px"></span>
+        <span class="spill" data-sim="failed">Failed</span><span class="arr">→</span>
+        <span class="spill" data-sim="aborted">Aborted</span>
+      </div>
+
+      <div class="sim-btns">
+        <button class="cbtn primary" id="btnSuccess" type="button">▶ Withdraw ₹1,000 — Normal</button>
+        <button class="cbtn" id="btnFail" type="button" style="border-color:rgba(248,113,113,.55)">⚡ Withdraw ₹1,000 — Power Fails</button>
+        <button class="cbtn" id="btnStep" type="button">Step ⏭</button>
+        <button class="cbtn" id="btnReset" type="button">↺ Reset</button>
+      </div>
+
+      <div class="atm-grid">
+        <div class="atm" id="atmBox">
+          <div class="atm-screen" id="atmScreen">
+            <p class="scr-line">PATEL BANK · ATM</p>
+            <p class="scr-line">Account balance</p>
+            <p class="scr-big" id="scrBalance">₹5,000</p>
+            <p class="scr-line" id="scrMsg">Insert card… ready. Choose a withdrawal option above.</p>
+          </div>
+          <div class="cash-slot"><div class="note" id="cashNote">₹1,000</div></div>
+          <p style="text-align:center;color:var(--muted2);font-size:.82rem;margin:10px 0 0">▲ Cash slot — money comes out ONLY after COMMIT</p>
+        </div>
+        <div>
+          <div class="db-panel">
+            <h3 style="margin-bottom:6px">Inside the Database</h3>
+            <div class="db-row"><span class="k">Stored balance (permanent)</span><span class="v" id="dbBalance">₹5,000</span></div>
+            <div class="db-row"><span class="k">Working copy in memory (temporary)</span><span class="v" id="bufBalance">—</span></div>
+            <div class="db-row"><span class="k">Cash dispensed</span><span class="v" id="cashOut">₹0</span></div>
+            <div class="db-row"><span class="k">Transaction state</span><span class="v" id="stateNow" style="color:var(--gold2)">Not started</span></div>
+          </div>
+          <div class="sim-log" id="simLog" style="margin-top:14px" aria-live="polite">
+            <div>· Transaction log will appear here, step by step…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid c2" style="margin-top:16px">
+        <div class="card"><span class="tag green">Normal run ends…</span><p style="margin-top:8px">Balance <b style="color:var(--ink)">₹4,000</b>, cash <b style="color:var(--ink)">₹1,000</b> in hand, state <b style="color:var(--ink)">Committed</b>. Total still ₹5,000 — consistency holds.</p></div>
+        <div class="card"><span class="tag red">Power-failure run ends…</span><p style="margin-top:8px">Balance restored to <b style="color:var(--ink)">₹5,000</b>, cash <b style="color:var(--ink)">₹0</b>, state <b style="color:var(--ink)">Aborted</b>. The failed withdrawal is fully rolled back — all or nothing.</p></div>
+      </div>
+
+      <div class="continue-row">
+        <button class="continue-btn" type="button" data-nav="quiz">
+          <span><span class="cb-label">Continue the journey</span><div class="cb-title">Recap &amp; Quick Quiz</div></span>
+          <span class="cb-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= QUIZ / CLOSING ================= -->
+  <section class="page" data-page="quiz">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> Wrap-up</span>
+      <h2>All or Nothing — That's the Whole Idea</h2>
+      <p class="lede">A transaction is one unit of work. It runs through six states, protected by the four ACID guarantees — and it either commits completely, or it rolls back completely. Nothing in between, ever.</p>
+      <div class="grid c3" style="margin-top:20px">
+        <div class="card"><h3>Remember 1</h3><p><b style="color:var(--ink)">Transaction</b> = one logical unit of work: Begin → operations → Commit, or Rollback.</p></div>
+        <div class="card"><h3>Remember 2</h3><p><b style="color:var(--ink)">ACID</b> = Atomicity, Consistency, Isolation, Durability — the four promises.</p></div>
+        <div class="card"><h3>Remember 3</h3><p><b style="color:var(--ink)">Six states</b>, two roads: success ends at Committed, failure ends at Aborted. Both end at Terminated.</p></div>
+      </div>
+
+      <h3 style="margin:28px 0 12px;font-size:1.3rem">Quick check — 3 questions for the class</h3>
+      <div class="quiz-q">
+        <h3>1. A transfer debits your account but the credit fails. What does the DBMS do?</h3>
+        <div class="quiz-opts">
+          <button type="button" data-q="1" data-right="0">Keeps the debit and waits</button>
+          <button type="button" data-q="1" data-right="1">Rolls back the debit — the whole transaction is undone</button>
+          <button type="button" data-q="1" data-right="0">Creates the missing ₹500</button>
+        </div>
+        <p class="quiz-fb" data-fb="1"></p>
+      </div>
+      <div class="quiz-q">
+        <h3>2. Which ACID property says "once committed, data survives even a power failure"?</h3>
+        <div class="quiz-opts">
+          <button type="button" data-q="2" data-right="0">Atomicity</button>
+          <button type="button" data-q="2" data-right="0">Isolation</button>
+          <button type="button" data-q="2" data-right="1">Durability</button>
+        </div>
+        <p class="quiz-fb" data-fb="2"></p>
+      </div>
+      <div class="quiz-q">
+        <h3>3. A transaction finished all its operations but has not committed yet. Its state is…</h3>
+        <div class="quiz-opts">
+          <button type="button" data-q="3" data-right="0">Active</button>
+          <button type="button" data-q="3" data-right="1">Partially Committed</button>
+          <button type="button" data-q="3" data-right="0">Aborted</button>
+        </div>
+        <p class="quiz-fb" data-fb="3"></p>
+      </div>
+
+      <div class="card" style="text-align:center;padding:30px;margin-top:8px">
+        <p class="display" style="font-size:1.7rem;font-weight:800;margin:0">Thank you!</p>
+        <p style="color:var(--muted);margin:8px 0 0">We are happy to take your questions.<br/>— Kasim Patel (Lead) · Puneeth Kumar · Pratik Naik · Presenter 4 —</p>
+      </div>
+
+      <div class="continue-row">
+        <button class="home-btn" type="button" data-nav="home">⌂ Back to Home — explore any topic again</button>
+        <button class="home-btn" type="button" data-nav="atm">↺ Replay the ATM Simulator</button>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /app -->
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s, c){ return (c||document).querySelector(s); };
+  var $$ = function(s, c){ return Array.prototype.slice.call((c||document).querySelectorAll(s)); };
+
+  /* ---------- Page navigation: in-content buttons + animated swap ---------- */
+  var pages = {};
+  $$(".page").forEach(function(p){ pages[p.getAttribute("data-page")] = p; });
+  var currentId = "home";
+  var historyStack = [];
+  var animating = false;
+
+  function swapTo(id, direction){
+    var from = pages[currentId];
+    var to = pages[id];
+    if(!to || id === currentId){ animating = false; return; }
+    to.scrollTop = 0;
+    to.classList.add("active", direction === "back" ? "enter-back" : "enter-fwd");
+    from.classList.add(direction === "back" ? "leave-back" : "leave-fwd");
+    currentId = id;
+    setTimeout(function(){
+      from.classList.remove("active","leave-fwd","leave-back");
+      to.classList.remove("enter-fwd","enter-back");
+      animating = false;
+    }, 580);
+  }
+  function navigate(id){
+    if(animating || !pages[id] || id === currentId) return;
+    animating = true;
+    historyStack.push(currentId);
+    swapTo(id, "fwd");
+  }
+  function goBack(){
+    if(animating) return;
+    var prev = historyStack.pop();
+    if(!prev){ return; }
+    animating = true;
+    swapTo(prev, "back");
+  }
+  document.addEventListener("click", function(e){
+    var navEl = e.target.closest("[data-nav]");
+    if(navEl){ navigate(navEl.getAttribute("data-nav")); return; }
+    if(e.target.closest("[data-back]")){ goBack(); }
+  });
+
+  /* ---------- Scenario toggle (What is TM) ---------- */
+  var bad = {
+    a:"₹1,000 → ₹500", b:"₹200 → ₹200", tag:"₹500 LOST", tagClass:"tag red",
+    text:'The debit succeeded, the credit never happened. The database is left <b style="color:var(--ink)">inconsistent</b> — ₹500 exists nowhere. This is exactly the failure a DBMS must prevent.'
+  };
+  var good = {
+    a:"₹1,000 → ₹500", b:"₹200 → ₹700", tag:"ALL OR NOTHING ✓", tagClass:"tag green",
+    text:'Debit and credit are ONE unit of work. Both complete and commit together — or, if anything fails, <b style="color:var(--ink)">both are rolled back</b> and the balances stay ₹1,000 and ₹200. Money can never vanish in between.'
+  };
+  function setScenario(which){
+    var d = which === "good" ? good : bad;
+    $("#acctA").textContent = d.a;
+    $("#acctB").textContent = d.b;
+    var t = $("#scenarioTag"); t.textContent = d.tag; t.className = d.tagClass;
+    $("#scenarioText").innerHTML = d.text;
+    $("#segBad").classList.toggle("sel", which !== "good");
+    $("#segGood").classList.toggle("sel", which === "good");
+  }
+  $("#segBad").addEventListener("click", function(){ setScenario("bad"); });
+  $("#segGood").addEventListener("click", function(){ setScenario("good"); });
+
+  /* ---------- Five operations explorer ---------- */
+  var ops = {
+    read:{tag:"Read · R ( X )", body:"Transfers the data item X from the database into a variable in memory so the transaction can work with it. Reading never changes the stored data.", ex:'In our example: <b>READ ( Your_Account )</b> brought the balance ₹1,000 into memory — the very first thing the transfer did.'},
+    write:{tag:"Write · W ( X )", body:"Stores the value held in memory back into the database, replacing the old value of X. A write inside a transaction only becomes permanent at COMMIT.", ex:'In our example: <b>WRITE ( Your_Account )</b> stored the new balance ₹500 after the debit — and it could still be rolled back until commit.'},
+    insert:{tag:"Insert", body:"Adds a completely new record to a table — a row that did not exist before, with its own new key.", ex:'Example: opening a new bank account <b>INSERTs</b> a fresh row into the Accounts table. If that transaction fails, the half-created account disappears.'},
+    update:{tag:"Update", body:"Changes values inside an existing record. Internally it is a read followed by a write: fetch the row, modify it, store it back.", ex:'Example: changing your registered mobile number <b>UPDATEs</b> your account row — the row stays, one value changes.'},
+    "delete":{tag:"Delete", body:"Removes an existing record from the table. Inside a transaction, a delete can still be undone by rollback any time before commit.", ex:'Example: closing an account <b>DELETEs</b> its row — but only permanently once the closing transaction commits.'}
+  };
+  $$("#opsGrid .opt").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      $$("#opsGrid .opt").forEach(function(b){ b.classList.remove("sel"); });
+      btn.classList.add("sel");
+      var d = ops[btn.getAttribute("data-op")];
+      $("#opDetail").innerHTML = '<span class="tag gold"></span><p></p><div class="ex"></div>';
+      $("#opDetail .tag").textContent = d.tag;
+      $("#opDetail p").textContent = d.body;
+      $("#opDetail .ex").innerHTML = d.ex;
+    });
+  });
+
+  /* ---------- ACID explorer ---------- */
+  var acid = {
+    a:{tag:"A · Atomicity", body:"A transaction is treated as one indivisible atom — either all of its operations are completed, or none of them are. There is no middle state.", ex:'Example: <b>₹500 transfer</b> — if the credit fails after the debit, the debit is rolled back. Your balance returns to exactly what it was.'},
+    c:{tag:"C · Consistency", body:"A transaction takes the database from one valid (consistent) state to another valid state. All rules and totals that held before must hold after.", ex:'Example: total money across both accounts is <b>₹1,200 before</b> the transfer (1,000 + 200) and <b>₹1,200 after</b> (500 + 700). A transfer moves money — it never creates or destroys it.'},
+    i:{tag:"I · Isolation", body:"Transactions running at the same time must not interfere with each other. Each one behaves as if it were the only transaction in the system, even when hundreds run together.", ex:'Example: you withdraw cash at an ATM while a UPI payment leaves the <b>same account</b> — isolation makes sure the two never read each other\'s half-finished values.'},
+    d:{tag:"D · Durability", body:"Once a transaction commits, its changes are permanent and survive any later failure — power cuts, crashes, restarts. Committed means forever.", ex:'Example: your withdrawal <b>commits</b>, and one second later the ATM loses power. When the bank system restarts, your balance is still correctly ₹4,000.'}
+  };
+  $$("#acidGrid .opt").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      $$("#acidGrid .opt").forEach(function(b){ b.classList.remove("sel"); });
+      btn.classList.add("sel");
+      var d = acid[btn.getAttribute("data-acid")];
+      $("#acidDetail").innerHTML = '<span class="tag gold"></span><p></p><div class="ex"></div>';
+      $("#acidDetail .tag").textContent = d.tag;
+      $("#acidDetail p").textContent = d.body;
+      $("#acidDetail .ex").innerHTML = d.ex;
+    });
+  });
+
+  /* ---------- Six states explorer ---------- */
+  var states = {
+    active:{tag:"State 1 · Active", body:"The transaction has begun and is executing its operations — reading and writing data. Every transaction starts here. Our transfer is Active while it debits and credits."},
+    partial:{tag:"State 2 · Partially Committed", body:"The final operation has finished, but the changes are not yet permanent — the DBMS is doing its final checks before commit. This is the last moment a rollback is still clean and simple."},
+    committed:{tag:"State 3 · Committed", body:"All changes are saved permanently. From this point the transaction can never be undone — durability takes over. The success road ends here, then the transaction terminates."},
+    failed:{tag:"State 4 · Failed", body:"An operation could not complete — a crash, a power failure, an error — while the transaction was Active. The transaction cannot continue; the DBMS must undo its work."},
+    aborted:{tag:"State 5 · Aborted", body:"The rollback is complete: every change the failed transaction made has been undone and the database is restored to the state before it began — as if it never happened."},
+    terminated:{tag:"State 6 · Terminated", body:"The final state of every transaction, reached from both Committed and Aborted. The transaction is finished and removed from the active list. Its story is over — one way or the other."}
+  };
+  $$("[data-state]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      $$("[data-state]").forEach(function(b){ b.classList.remove("cur"); });
+      btn.classList.add("cur");
+      var d = states[btn.getAttribute("data-state")];
+      if(!d) return;
+      $("#stateDetail").innerHTML = '<span class="tag gold"></span><p></p>';
+      $("#stateDetail .tag").textContent = d.tag;
+      $("#stateDetail p").textContent = d.body;
+    });
+  });
+
+  /* ---------- State diagram explorer ---------- */
+  var diag = {
+    active:{tag:"Active", body:"The starting state. The transaction is executing its read and write operations. From here it can only go to Partially Committed (all operations finished) or Failed (an error occurred)."},
+    partial:{tag:"Partially Committed", body:"All operations are done and the result is ready — but nothing is permanent yet. The only way forward is the final commit decision, which takes it to Committed."},
+    committed:{tag:"Committed", body:"The transaction's changes are now permanent in the database — durability guarantees they survive any future crash. From here the transaction simply ends: Terminated."},
+    failed:{tag:"Failed", body:"Something went wrong during execution — a crash, power failure or error. The transaction cannot continue from here; the only road out is rollback, into Aborted."},
+    aborted:{tag:"Aborted", body:"Rollback is complete — every change this transaction made has been undone and the database looks exactly as it did before the transaction began. From here: Terminated."},
+    terminated:{tag:"Terminated", body:"The end of both roads. Every transaction — successful or failed — finishes here and leaves the system. Committed transactions end here with their changes kept; aborted ones end here with their changes erased."}
+  };
+  $$(".node").forEach(function(n){
+    n.addEventListener("click", function(){
+      $$(".node").forEach(function(x){ x.classList.remove("sel"); });
+      n.classList.add("sel");
+      var d = diag[n.getAttribute("data-diag")];
+      $("#diagDetail").innerHTML = '<span class="tag gold"></span><p></p>';
+      $("#diagDetail .tag").textContent = d.tag;
+      $("#diagDetail p").textContent = d.body;
+    });
+  });
+
+  /* ---------- ATM simulator ---------- */
+  var START = 5000, AMT = 1000;
+  var playing = false, timers = [];
+  var simMode = null, stepIdx = 0;
+
+  function fmt(n){ return "₹" + n.toLocaleString("en-IN"); }
+  function log(html, cls){
+    var box = $("#simLog");
+    var d = document.createElement("div");
+    if(cls) d.className = cls;
+    d.innerHTML = html;
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+  }
+  function setState(name, label){
+    $$("#simStates .spill").forEach(function(p){
+      p.classList.remove("cur","bad");
+      if(p.getAttribute("data-sim") === name){
+        p.classList.add("cur");
+        if(name === "failed" || name === "aborted") p.classList.add("bad");
+      }
+    });
+    var sn = $("#stateNow");
+    sn.textContent = label;
+    sn.style.color = (name === "failed" || name === "aborted") ? "var(--red)" : (name === "committed" ? "var(--green)" : "var(--gold2)");
+  }
+  function setDb(val, pending){
+    var el = $("#dbBalance");
+    el.textContent = fmt(val);
+    el.classList.toggle("pending", !!pending);
+    el.classList.remove("changed"); void el.offsetWidth; el.classList.add("changed");
+    $("#scrBalance").textContent = fmt(val);
+  }
+  function setBuf(txt){
+    var el = $("#bufBalance");
+    el.textContent = txt;
+    el.classList.remove("changed"); void el.offsetWidth; el.classList.add("changed");
+  }
+  function scrMsg(t){ $("#scrMsg").textContent = t; }
+
+  function resetSim(){
+    timers.forEach(clearTimeout); timers = [];
+    playing = false; simMode = null; stepIdx = 0;
+    $("#atmScreen").classList.remove("off");
+    $("#atmBox").classList.remove("power-flash");
+    $("#cashNote").classList.remove("out");
+    $("#dbBalance").textContent = fmt(START);
+    $("#dbBalance").classList.remove("pending");
+    $("#scrBalance").textContent = fmt(START);
+    $("#bufBalance").textContent = "—";
+    $("#cashOut").textContent = "₹0";
+    $$("#simStates .spill").forEach(function(p){ p.classList.remove("cur","bad"); });
+    $("#stateNow").textContent = "Not started"; $("#stateNow").style.color = "var(--gold2)";
+    scrMsg("Insert card… ready. Choose a withdrawal option above.");
+    $("#simLog").innerHTML = "<div>· Transaction log will appear here, step by step…</div>";
+    setBtns(false);
+  }
+  function setBtns(running){
+    $("#btnSuccess").disabled = running;
+    $("#btnFail").disabled = running;
+    $("#btnStep").disabled = running;
+  }
+
+  function successSteps(){
+    return [
+      function(){ setState("active","Active"); log("<b>T1 BEGIN</b> — withdrawal transaction starts. State: <b>ACTIVE</b>"); scrMsg("Processing… do not remove card."); },
+      function(){ setBuf(fmt(START)); log("READ ( balance ) → " + fmt(START) + " loaded into memory."); scrMsg("Reading account balance…"); },
+      function(){ setBuf(fmt(START) + " − ₹1,000 = " + fmt(START-AMT)); log("In memory: " + fmt(START) + " − ₹1,000 = <b>" + fmt(START-AMT) + "</b>. Database not changed yet."); scrMsg("Counting your cash…"); },
+      function(){ setDb(START-AMT, true); log("WRITE ( balance ) → <b>" + fmt(START-AMT) + "</b> written — shown in gold: written, but NOT yet permanent."); scrMsg("Updating account…"); },
+      function(){ setState("partial","Partially Committed"); log("All operations finished. State: <b>PARTIALLY COMMITTED</b> — one final step remains."); scrMsg("Almost done…"); },
+      function(){ setDb(START-AMT, false); setState("committed","Committed ✓"); $("#cashOut").textContent = fmt(AMT); $("#cashNote").classList.add("out"); log("<b>COMMIT</b> — " + fmt(START-AMT) + " is now permanent. Cash dispensed: " + fmt(AMT) + ".", "ok"); log("State: <b>COMMITTED → TERMINATED</b>. Total check: " + fmt(START-AMT) + " in account + " + fmt(AMT) + " cash = " + fmt(START) + " ✓ Consistency holds.", "ok"); scrMsg("Please collect your cash. Thank you!"); }
+    ];
+  }
+  function failSteps(){
+    return [
+      function(){ setState("active","Active"); log("<b>T1 BEGIN</b> — withdrawal transaction starts. State: <b>ACTIVE</b>"); scrMsg("Processing… do not remove card."); },
+      function(){ setBuf(fmt(START)); log("READ ( balance ) → " + fmt(START) + " loaded into memory."); scrMsg("Reading account balance…"); },
+      function(){ setBuf(fmt(START) + " − ₹1,000 = " + fmt(START-AMT)); log("In memory: " + fmt(START) + " − ₹1,000 = <b>" + fmt(START-AMT) + "</b>. Database not changed yet."); scrMsg("Counting your cash…"); },
+      function(){ setDb(START-AMT, true); log("WRITE ( balance ) → <b>" + fmt(START-AMT) + "</b> written — not yet committed…"); scrMsg("Updating account…"); },
+      function(){ $("#atmBox").classList.add("power-flash"); $("#atmScreen").classList.add("off"); setState("failed","Failed ✕"); log("⚡ <b>POWER FAILURE!</b> The ATM dies before COMMIT. State: <b>FAILED</b>", "err"); scrMsg("— no power —"); },
+      function(){ $("#atmScreen").classList.remove("off"); setDb(START, false); setBuf("— cleared"); log("<b>ROLLBACK</b> — the DBMS undoes the write. Stored balance restored to <b>" + fmt(START) + "</b>.", "err"); scrMsg("System restarted. Your last transaction was cancelled."); },
+      function(){ setState("aborted","Aborted ↩"); log("State: <b>ABORTED → TERMINATED</b>. Cash dispensed: ₹0. Balance: " + fmt(START) + " — exactly as before. <b>All or nothing.</b>", "ok"); scrMsg("No money was deducted. Please try again."); }
+    ];
+  }
+  function runSim(mode){
+    resetSim();
+    simMode = mode; playing = true; setBtns(true);
+    var steps = mode === "fail" ? failSteps() : successSteps();
+    steps.forEach(function(fn, i){
+      timers.push(setTimeout(function(){
+        fn();
+        if(i === steps.length-1){ playing = false; setBtns(false); }
+      }, 350 + i*1250));
+    });
+  }
+  function stepSim(){
+    if(playing) return;
+    if(!simMode){ simMode = "success"; stepIdx = 0; $("#simLog").innerHTML = ""; log("Stepping manually through the <b>normal</b> withdrawal…"); }
+    var steps = simMode === "fail" ? failSteps() : successSteps();
+    if(stepIdx >= steps.length){ resetSim(); return; }
+    if(stepIdx === 0 && $("#simLog").textContent.indexOf("will appear") > -1){ $("#simLog").innerHTML = ""; }
+    steps[stepIdx]();
+    stepIdx++;
+    if(stepIdx >= steps.length){ log("· End of steps. Press Reset to run again."); }
+  }
+  $("#btnSuccess").addEventListener("click", function(){ runSim("success"); });
+  $("#btnFail").addEventListener("click", function(){ runSim("fail"); });
+  $("#btnReset").addEventListener("click", resetSim);
+  $("#btnStep").addEventListener("click", stepSim);
+
+  /* ---------- Quiz ---------- */
+  var quizFb = {
+    "1":{right:"Correct! Atomicity — the debit is rolled back, so the transaction counts as never having happened.", wrong:"Not quite — the answer is rollback. Atomicity means all or nothing: the debit is undone completely."},
+    "2":{right:"Correct! Durability — committed data is permanent and survives crashes and power failures.", wrong:"Not quite — that's Durability. Once a transaction commits, its result survives even a power failure."},
+    "3":{right:"Correct! Partially Committed — all operations are done, but the changes become permanent only at commit.", wrong:"Not quite — it's Partially Committed: operations finished, waiting for the final commit."}
+  };
+  $$(".quiz-opts button").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var q = btn.getAttribute("data-q");
+      var right = btn.getAttribute("data-right") === "1";
+      $$('.quiz-opts button[data-q="'+q+'"]').forEach(function(b){ b.classList.remove("right","wrong"); });
+      btn.classList.add(right ? "right" : "wrong");
+      var fb = document.querySelector('[data-fb="'+q+'"]');
+      fb.textContent = right ? "✓ " + quizFb[q].right : "✕ " + quizFb[q].wrong;
+      fb.style.color = right ? "var(--green)" : "var(--red)";
+      fb.classList.add("show");
+    });
+  });
+})();
+</script>
+</body>
+</html>
