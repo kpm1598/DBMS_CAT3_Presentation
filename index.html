@@ -82,6 +82,7 @@
   .page[data-page="diagram"]{--acc:#ff8fab}
   .page[data-page="atm"]{--acc:#ffd23f}
   .page[data-page="quiz"]{--acc:#ff6b4a}
+  .page[data-page="thankyou"]{--acc:#ffd23f}
   .page.active{display:block}
   .page.enter-fwd{animation:pageInFwd .65s cubic-bezier(.22,1.1,.3,1) both}
   .page.enter-back{animation:pageInBack .65s cubic-bezier(.22,1.1,.3,1) both}
@@ -484,6 +485,23 @@
   .key.lit{background:var(--gold2);color:#22130a;box-shadow:0 0 14px rgba(255,210,63,.7)}
   .key.enter{color:var(--green)}
   .key.cancel{color:var(--red)}
+
+  /* ---------- Finale video page ---------- */
+  .finale-video{
+    position:relative;overflow:hidden;transform:rotate(-.5deg);
+    border:2px solid rgba(255,210,63,.55);border-radius:30px 12px 32px 14px;
+    background:#fff;box-shadow:0 26px 50px -20px rgba(0,0,0,.7);
+  }
+  .finale-video video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#fff}
+  .finale-banner{
+    position:absolute;top:0;left:0;right:0;z-index:2;pointer-events:none;
+    padding:18px 20px 44px;text-align:center;
+    background:linear-gradient(180deg, rgba(13,10,22,.92), rgba(13,10,22,.62) 62%, rgba(13,10,22,0));
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(1.5rem,4.4vw,2.5rem);letter-spacing:.01em;color:var(--gold2);
+    text-shadow:0 2px 12px rgba(0,0,0,.55);
+  }
+  .finale-banner .fb-sub{display:block;margin-top:4px;font-family:"Caveat",cursive;font-weight:700;font-size:clamp(1.05rem,2.4vw,1.45rem);color:#fdf6e9}
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   }
@@ -508,7 +526,6 @@
         <p style="color:var(--muted);margin:16px 0 0">Presented by <b style="color:var(--ink)">Kasim Patel</b> (Lead) · Puneeth Kumar · Pratik Naik · Presenter 4</p>
         <button class="start-btn" id="btnStart" type="button" data-nav="home"><span>Let's Start</span><span class="sb-arrow">→</span></button>
         <p class="foot-note">🔊 Sound on recommended — the buttons, page changes and the ATM all have sound effects. You can mute anytime with the sound button at the top-right.</p>
-        <span class="tag gold">Trial version — testing the sound &amp; animation</span>
       </div>
     </div>
   </section>
@@ -537,7 +554,7 @@
       <div class="ticker" aria-hidden="true"><div class="ticker-track">ALL OR NOTHING ✦ COMMIT ✦ ROLLBACK ✦ ATOMICITY ✦ CONSISTENCY ✦ ISOLATION ✦ DURABILITY ✦ ACTIVE → COMMITTED ✦ FAILED → ABORTED ✦ ALL OR NOTHING ✦ COMMIT ✦ ROLLBACK ✦ ATOMICITY ✦ CONSISTENCY ✦ ISOLATION ✦ DURABILITY ✦ ACTIVE → COMMITTED ✦ FAILED → ABORTED ✦ ALL OR NOTHING ✦ COMMIT ✦ ROLLBACK ✦ ATOMICITY ✦ CONSISTENCY ✦ ISOLATION ✦ DURABILITY ✦ ACTIVE → COMMITTED ✦ FAILED → ABORTED ✦ ALL OR NOTHING ✦ COMMIT ✦ ROLLBACK ✦ ATOMICITY ✦ CONSISTENCY ✦ ISOLATION ✦ DURABILITY ✦ ACTIVE → COMMITTED ✦ FAILED → ABORTED ✦ </div></div>
       <div class="journey-head">
         <h2>Start the journey</h2>
-        <p>Eight stops, in order — or jump straight to any topic.</p>
+        <p>Nine stops, in order — or jump straight to any topic.</p>
       </div>
       <div class="grid c2">
         <button class="jcard" type="button" data-nav="what">
@@ -976,6 +993,37 @@
       </div>
 
       <div class="continue-row">
+        <button class="continue-btn" type="button" data-nav="thankyou">
+          <span><span class="cb-label">Finish the journey</span><div class="cb-title">Thank You, Ma'am 🙏</div></span>
+          <span class="cb-arrow">→</span>
+        </button>
+      </div>
+      <div class="continue-row" style="margin-top:14px">
+        <button class="home-btn" type="button" data-nav="home">⌂ Back to Home — explore any topic again</button>
+        <button class="home-btn" type="button" data-nav="atm">↺ Replay the ATM Simulator</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FINALE — THANK YOU ================= -->
+  <section class="page" data-page="thankyou">
+    <div class="page-inner">
+      <div class="waybar">
+        <button class="waybtn" type="button" data-back>← Back</button>
+        <button class="waybtn" type="button" data-nav="home">⌂ Home</button>
+      </div>
+      <span class="kicker"><span class="dot"></span> The finale</span>
+      <h2>Transaction Complete ✓</h2>
+      <p class="lede">Every good transaction ends the same way — <b style="color:var(--ink)">committed</b>. Ours ends with a thank-you, and a little dance.</p>
+
+      <div class="finale-video" style="margin-top:24px">
+        <video id="thanksVideo" src="assets/thankyou-chick.mp4" loop playsinline controls preload="metadata" aria-label="A cute dancing chick — thanks for your attention"></video>
+        <div class="finale-banner">Thank You, Ma'am 🙏<span class="fb-sub">— from Team Transaction Management —</span></div>
+      </div>
+
+      <p style="color:var(--muted);text-align:center;margin:22px 0 0">Presented by <b style="color:var(--ink)">Kasim Patel</b> (Lead) · Puneeth Kumar · Pratik Naik · Presenter 4</p>
+
+      <div class="continue-row">
         <button class="home-btn" type="button" data-nav="home">⌂ Back to Home — explore any topic again</button>
         <button class="home-btn" type="button" data-nav="atm">↺ Replay the ATM Simulator</button>
       </div>
@@ -1053,6 +1101,16 @@
     to.classList.add("active", direction === "back" ? "enter-back" : "enter-fwd");
     from.classList.add(direction === "back" ? "leave-back" : "leave-fwd");
     currentId = id;
+    var thanksVideo = $("#thanksVideo");
+    if(thanksVideo){
+      if(id === "thankyou"){
+        try{ thanksVideo.currentTime = 0; }catch(e){}
+        var pr = thanksVideo.play();
+        if(pr && pr.catch) pr.catch(function(){});
+      } else {
+        thanksVideo.pause();
+      }
+    }
     setTimeout(function(){
       from.classList.remove("active","leave-fwd","leave-back");
       to.classList.remove("enter-fwd","enter-back");
